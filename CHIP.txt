@@ -1,0 +1,8 @@
+To switch chip these are the places to change:
+
+1. memory.x – memory layout for the selected chip
+2. Cargo.toml - stm32g0xx-hal - features to match chip
+3. Cargo.toml - stm32g0 - higher level crate with features
+4. .cargo/config - arch (thumbv6m-none-eabi for M0/M0+) (rustup target add thumbv6m-none-eabi)
+5. .cargo/config - rustflags (match target)
+6. .cargo/config - probe-run (--chip STM32G030C6Tx) do `probe-run --list-chips`

@@ -1,0 +1,10 @@
+[target.thumbv6m-none-eabi]
+runner = "probe-run --chip STM32G030C6Tx"
+
+rustflags = [
+  "-C", "link-arg=-Tlink.x",  # cortex-m-rt to read the memory.x file
+  "-C", "link-arg=-Tdefmt.x", # required by defmt
+]
+
+[build]
+target = "thumbv6m-none-eabi" # M0
