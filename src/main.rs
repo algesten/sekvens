@@ -12,11 +12,13 @@ use hal::gpio::{DefaultMode, Floating, Input, OpenDrain, Output, PushPull};
 use hal::prelude::*;
 use hal::stm32 as pac;
 use hal::time::Hertz;
+use led_grid::{BiLed, LedGrid};
 use stm32g0xx_hal as hal;
 
 use crate::flip_pin::{FlipPin, IntoFlipPin};
 
 mod flip_pin;
+mod led_grid;
 
 // Setup logging via defmt_rtt. "rtt" is "real time transfer"
 use defmt_rtt as _;
@@ -79,46 +81,51 @@ fn main() -> ! {
         i2c::I2c::i2c2(dp.I2C2, sda, scl, i2c::Config::new(Hertz(30)), &mut clocks)
     };
 
-    let csFRam: CsFRam = gpioa.pa1.into_push_pull_output();
-    let csDac: CsDac = gpioa.pa2.into_push_pull_output();
+    let cs_fram: CsFRam = gpioa.pa1.into_push_pull_output();
+    let cs_dac: CsDac = gpioa.pa2.into_push_pull_output();
 
-    let inReset: InReset = gpioc.pc13.into_floating_input();
-    let inSync: InSync = gpioc.pc14.into_floating_input();
+    let in_reset: InReset = gpioc.pc13.into_floating_input();
+    let in_sync: InSync = gpioc.pc14.into_floating_input();
 
-    let row1Led: Row1Led = gpiod.pd3.into_flip_pin();
-    let row1Swl: Row1Swl = gpiod.pd2.into_floating_input();
-    let row1Swr: Row1Swr = gpiod.pd1.into_floating_input();
-    let row1RotA: Row1RotA = gpiod.pd0.into_floating_input();
-    let row1RotB: Row1RotB = gpioa.pa15.into_floating_input();
+    let row1_swl: Row1Swl = gpiod.pd2.into_floating_input();
+    let row1_swr: Row1Swr = gpiod.pd1.into_floating_input();
+    let row1_rot_a: Row1RotA = gpiod.pd0.into_floating_input();
+    let row1_rot_b: Row1RotB = gpioa.pa15.into_floating_input();
 
-    let row2Led: Row2Led = gpiob.pb1.into_flip_pin();
-    let row2Swl: Row2Swl = gpiob.pb2.into_floating_input();
-    let row2Swr: Row2Swr = gpiob.pb12.into_floating_input();
-    let row2RotA: Row2RotA = gpiob.pb13.into_floating_input();
-    let row2RotB: Row2RotB = gpiob.pb14.into_floating_input();
+    let row2_swl: Row2Swl = gpiob.pb2.into_floating_input();
+    let row2_swr: Row2Swr = gpiob.pb12.into_floating_input();
+    let row2_rot_a: Row2RotA = gpiob.pb13.into_floating_input();
+    let row2_rot_b: Row2RotB = gpiob.pb14.into_floating_input();
 
-    let row3Led: Row3Led = gpioa.pa5.into_flip_pin();
-    let row3Swl: Row3Swl = gpioa.pa6.into_floating_input();
+    let row3_swl: Row3Swl = gpioa.pa6.into_floating_input();
 
-    let row4Led: Row4Led = gpioa.pa7.into_flip_pin();
-    let row4Swl: Row4Swl = gpiob.pb0.into_floating_input();
+    let row4_swl: Row4Swl = gpiob.pb0.into_floating_input();
 
-    let row5Led: Row5Led = gpiof.pf1.into_flip_pin();
-    let row5Swl: Row5Swl = gpiof.pf0.into_floating_input();
+    let row5_swl: Row5Swl = gpiof.pf0.into_floating_input();
 
-    let col1: Col1 = gpioa.pa12.into_flip_pin();
-    let col2: Col2 = gpioa.pa11.into_flip_pin();
-    let col3: Col3 = gpioa.pa10.into_flip_pin();
-    let col4: Col4 = gpioc.pc7.into_flip_pin();
-    let col5: Col5 = gpioc.pc6.into_flip_pin();
-    let col6: Col6 = gpioa.pa9.into_flip_pin();
-    let col7: Col7 = gpioa.pa8.into_flip_pin();
-    let col8: Col8 = gpiob.pb15.into_flip_pin();
+    let out_gate1: OutGate1 = gpiob.pb5.into_push_pull_output();
+    let out_gate2: OutGate2 = gpiob.pb7.into_push_pull_output();
+    let out_gate3: OutGate3 = gpiob.pb4.into_push_pull_output();
+    let out_gate4: OutGate4 = gpiob.pb6.into_push_pull_output();
 
-    let outGate1: OutGate1 = gpiob.pb5.into_push_pull_output();
-    let outGate2: OutGate2 = gpiob.pb7.into_push_pull_output();
-    let outGate3: OutGate3 = gpiob.pb4.into_push_pull_output();
-    let outGate4: OutGate4 = gpiob.pb6.into_push_pull_output();
+    let mut led_grid = LedGrid {
+        col1: gpioa.pa12.into_flip_pin(),
+        col2: gpioa.pa11.into_flip_pin(),
+        col3: gpioa.pa10.into_flip_pin(),
+        col4: gpioc.pc7.into_flip_pin(),
+        col5: gpioc.pc6.into_flip_pin(),
+        col6: gpioa.pa9.into_flip_pin(),
+        col7: gpioa.pa8.into_flip_pin(),
+        col8: gpiob.pb15.into_flip_pin(),
+
+        row1: gpiod.pd3.into_flip_pin(),
+        row2: gpiob.pb1.into_flip_pin(),
+        row3: gpioa.pa5.into_flip_pin(),
+        row4: gpioa.pa7.into_flip_pin(),
+        row5: gpiof.pf1.into_flip_pin(),
+    };
+
+    led_grid.set_row(0, BiLed::Off, &[BiLed::Off; 8]);
 
     // App state stuff
 
@@ -159,50 +166,50 @@ fn panic() -> ! {
     cortex_m::asm::udf()
 }
 
-type Spi2Sck = gpioa::PA0<DefaultMode>;
-type Spi2Miso = gpioa::PA3<DefaultMode>;
-type Spi2Mosi = gpioa::PA4<DefaultMode>;
+pub type Spi2Sck = gpioa::PA0<DefaultMode>;
+pub type Spi2Miso = gpioa::PA3<DefaultMode>;
+pub type Spi2Mosi = gpioa::PA4<DefaultMode>;
 
-type I2cScl = gpiob::PB10<Output<OpenDrain>>;
-type I2cSda = gpiob::PB11<Output<OpenDrain>>;
+pub type I2cScl = gpiob::PB10<Output<OpenDrain>>;
+pub type I2cSda = gpiob::PB11<Output<OpenDrain>>;
 
-type CsFRam = gpioa::PA1<Output<PushPull>>;
+pub type CsFRam = gpioa::PA1<Output<PushPull>>;
 type CsDac = gpioa::PA2<Output<PushPull>>;
 
-type InReset = gpioc::PC13<Input<Floating>>;
-type InSync = gpioc::PC14<Input<Floating>>;
+pub type InReset = gpioc::PC13<Input<Floating>>;
+pub type InSync = gpioc::PC14<Input<Floating>>;
 
-type Row1Led = FlipPin<'D', 3>;
-type Row1Swl = gpiod::PD2<Input<Floating>>;
-type Row1Swr = gpiod::PD1<Input<Floating>>;
-type Row1RotA = gpiod::PD0<Input<Floating>>;
-type Row1RotB = gpioa::PA15<Input<Floating>>;
+pub type Row1Led = FlipPin<'D', 3>;
+pub type Row1Swl = gpiod::PD2<Input<Floating>>;
+pub type Row1Swr = gpiod::PD1<Input<Floating>>;
+pub type Row1RotA = gpiod::PD0<Input<Floating>>;
+pub type Row1RotB = gpioa::PA15<Input<Floating>>;
 
-type Row2Led = FlipPin<'B', 1>;
-type Row2Swl = gpiob::PB2<Input<Floating>>;
-type Row2Swr = gpiob::PB12<Input<Floating>>;
-type Row2RotA = gpiob::PB13<Input<Floating>>;
-type Row2RotB = gpiob::PB14<Input<Floating>>;
+pub type Row2Led = FlipPin<'B', 1>;
+pub type Row2Swl = gpiob::PB2<Input<Floating>>;
+pub type Row2Swr = gpiob::PB12<Input<Floating>>;
+pub type Row2RotA = gpiob::PB13<Input<Floating>>;
+pub type Row2RotB = gpiob::PB14<Input<Floating>>;
 
-type Row3Led = FlipPin<'A', 5>;
-type Row3Swl = gpioa::PA6<Input<Floating>>;
+pub type Row3Led = FlipPin<'A', 5>;
+pub type Row3Swl = gpioa::PA6<Input<Floating>>;
 
-type Row4Led = FlipPin<'A', 7>;
-type Row4Swl = gpiob::PB0<Input<Floating>>;
+pub type Row4Led = FlipPin<'A', 7>;
+pub type Row4Swl = gpiob::PB0<Input<Floating>>;
 
-type Row5Led = FlipPin<'F', 1>;
-type Row5Swl = gpiof::PF0<Input<Floating>>;
+pub type Row5Led = FlipPin<'F', 1>;
+pub type Row5Swl = gpiof::PF0<Input<Floating>>;
 
-type Col1 = FlipPin<'A', 12>;
-type Col2 = FlipPin<'A', 11>;
-type Col3 = FlipPin<'A', 10>;
-type Col4 = FlipPin<'C', 7>;
-type Col5 = FlipPin<'C', 6>;
-type Col6 = FlipPin<'A', 9>;
-type Col7 = FlipPin<'A', 8>;
-type Col8 = FlipPin<'B', 15>;
+pub type Col1 = FlipPin<'A', 12>;
+pub type Col2 = FlipPin<'A', 11>;
+pub type Col3 = FlipPin<'A', 10>;
+pub type Col4 = FlipPin<'C', 7>;
+pub type Col5 = FlipPin<'C', 6>;
+pub type Col6 = FlipPin<'A', 9>;
+pub type Col7 = FlipPin<'A', 8>;
+pub type Col8 = FlipPin<'B', 15>;
 
-type OutGate1 = gpiob::PB5<Output<PushPull>>;
-type OutGate2 = gpiob::PB7<Output<PushPull>>;
-type OutGate3 = gpiob::PB4<Output<PushPull>>;
-type OutGate4 = gpiob::PB6<Output<PushPull>>;
+pub type OutGate1 = gpiob::PB5<Output<PushPull>>;
+pub type OutGate2 = gpiob::PB7<Output<PushPull>>;
+pub type OutGate3 = gpiob::PB4<Output<PushPull>>;
+pub type OutGate4 = gpiob::PB6<Output<PushPull>>;

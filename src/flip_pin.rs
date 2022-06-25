@@ -11,6 +11,11 @@ pub struct FlipPin<const P: char, const N: u8> {
     mode: Mode,
 }
 
+pub trait FlipPinExt {
+    fn set_output(&mut self, high: bool);
+    fn disable(&mut self);
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Input,
@@ -81,8 +86,11 @@ macro_rules! flip_pin {
 
                 self.mode = Mode::Output;
             }
+        }
 
-            pub fn set_output(&mut self, high: bool) {
+        impl<const N: u8> FlipPinExt for FlipPin<$port_id, N> {
+
+            fn set_output(&mut self, high: bool) {
                 self.set_push_pull_output();
                 if high {
                     // NOTE(unsafe) atomic write to a stateless register
@@ -93,10 +101,11 @@ macro_rules! flip_pin {
                 }
             }
 
-            pub fn disable(&mut self) {
+            fn disable(&mut self) {
                 self.set_floating_input();
             }
         }
+
     };
 }
 
