@@ -23,18 +23,20 @@ alg = { version = "*", path = "../alg" }
 codegen-units = 1
 debug = 2
 debug-assertions = true
-incremental = false
+incremental = true
 opt-level = 3
 overflow-checks = true
+lto = true
 
 # cargo build/run --release
 [profile.release]
 codegen-units = 1
 debug = 2
 debug-assertions = true
-incremental = false
+incremental = true
 opt-level = 3
 overflow-checks = true
+lto = true
 
 # optimize all the other dependencies, this reduces
 # the flash size for development by optimizing away dependecies
@@ -42,7 +44,3 @@ overflow-checks = true
 [profile.dev.package."*"]
 codegen-units = 1 # better optimizations
 opt-level = "z"
-
-# don't optimize the `cortex-m-rt` crate
-[profile.dev.package.alg]
-opt-level = 0
