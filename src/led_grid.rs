@@ -40,6 +40,12 @@ pub enum BiLed {
     Grn,
 }
 
+impl Default for BiLed {
+    fn default() -> Self {
+        BiLed::Off
+    }
+}
+
 impl LedGrid {
     pub fn set_col(&mut self, col: usize) {
         let pins = &mut self.pins;

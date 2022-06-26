@@ -270,9 +270,9 @@ const TIME_OFF: i64 = 400;
 /// be less than TIME_OFF.
 const TIME_READ_WAIT: Time<CLOCK> = Time::from_micros(50);
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub struct Row(usize);
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub struct Col(usize);
 
 pub enum GridStep {
@@ -352,4 +352,4 @@ pub type OutGate2 = gpiob::PB7<Output<PushPull>>;
 pub type OutGate3 = gpiob::PB4<Output<PushPull>>;
 pub type OutGate4 = gpiob::PB6<Output<PushPull>>;
 
-pub type OperQueue = RingBuf<Oper, 2>;
+pub type OperQueue = RingBuf<Oper, 64>;

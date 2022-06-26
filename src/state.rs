@@ -6,6 +6,7 @@ use crate::{Col, Row, CLOCK};
 
 pub const TRACK_COUNT: usize = 4;
 
+#[derive(Copy, Clone, defmt::Format)]
 /// The operations that can be done on the state.
 pub enum Oper {
     /// Clock pulse. The time is the interval from the previous clock pulse.
@@ -24,6 +25,7 @@ pub enum Oper {
     EncoderButton(Row, Col, bool),
 }
 
+#[derive(Default)]
 pub struct AppState {
     /// If next tick is going to reset back to 0.
     pub next_is_reset: bool,
@@ -40,57 +42,29 @@ pub struct AppState {
     /// Current global playhead. Goes from 0..whenever external reset comes.
     playhead: u64,
 
-    /// LED states.
-    leds: [[BiLed; 8]; 5],
-
     /// Parameters for pattern and tracks.
     params: Params<{ TRACK_COUNT }>,
 
     /// Playhead for each track.
     track_playhead: [usize; TRACK_COUNT],
-}
 
-pub struct Params<const X: usize> {
-    pattern_length: u8,
-    tracks: [TrackParams; X],
-}
+    /// Buttons top right.
+    top_buttons: [[Button; 4]; 3],
 
-#[derive(Clone, Copy)]
-pub struct TrackParams {
-    /// Length of track. In clock-ticks.
-    pub length: u8,
+    /// Step buttons underneath each rotary encoder.
+    step_buttons: [[Button; 8]; 2],
 
-    /// Track sync parameter.
-    pub sync: TrackSync,
-}
+    /// Step buttons that is the rotary encoder.
+    step_rot_buttons: [[Button; 8]; 2],
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum TrackSync {
-    /// Track is restarted at pattern length and reset.
-    Sync,
-    /// Track is restarted only by reset.
-    Reset,
-    /// Track just keeps looping, ignoring both pattern length and reset.
-    Free,
+    /// LED states.
+    leds: [[BiLed; 8]; 5],
 }
 
 impl AppState {
     pub fn new() -> Self {
         AppState {
-            next_is_reset: false,
-            tempo: Tempo::new(),
-            predicted: Time::ZERO,
-            tick_count: 0,
-            playhead: 0,
-            leds: [[BiLed::Off; 8]; 5],
-            params: Params {
-                pattern_length: 64,
-                tracks: [TrackParams {
-                    length: 64,
-                    sync: TrackSync::Sync,
-                }; TRACK_COUNT],
-            },
-            track_playhead: [0; TRACK_COUNT],
+            ..Default::default()
         }
     }
 
@@ -133,15 +107,27 @@ impl AppState {
             }
 
             Oper::RotaryEncoder(row, col, v) => {
-                //
+                // match (row, col) {
+                // }
             }
 
             Oper::LedButton(row, col, on) => {
-                //
+                if row.0 < 2 {
+                    self.step_buttons[row.0][col.0].set_on(on, now);
+                } else if row.0 >= 2 && row.0 <= 4 {
+                    let col = if col.0 >= 4 { col.0 - 4 } else { col.0 };
+                    self.top_buttons[row.0 - 2][col].set_on(on, now);
+                } else {
+                    panic!("Unknown LedButton {:?} {:?}", row, col);
+                }
             }
 
             Oper::EncoderButton(row, col, on) => {
-                //
+                if row.0 < 2 {
+                    self.step_rot_buttons[row.0][col.0].set_on(on, now);
+                } else {
+                    panic!("Unknown EncoderButton {:?} {:?}", row, col);
+                }
             }
         }
     }
@@ -162,6 +148,90 @@ impl AppState {
                 TrackSync::Reset => (self.playhead % parm.tracks[i].length as u64) as usize,
                 TrackSync::Free => (self.tick_count % parm.tracks[i].length as u64) as usize,
             };
+        }
+    }
+}
+
+#[derive(Default)]
+struct Button {
+    /// When the button is pushed down.
+    on: Option<Time<{ CLOCK }>>,
+}
+
+impl Button {
+    fn set_on(&mut self, on: bool, now: Time<{ CLOCK }>) {
+        if on {
+            self.on = Some(now);
+        } else {
+            self.on = None;
+        }
+    }
+
+    fn state(&self, now: Time<{ CLOCK }>) -> ButtonState {
+        if let Some(on) = &self.on {
+            if now - *on > Time::from_millis(200) {
+                ButtonState::LongPressed
+            } else {
+                ButtonState::Pressed
+            }
+        } else {
+            ButtonState::Off
+        }
+    }
+
+    fn is_pressed(&self, now: Time<{ CLOCK }>) -> bool {
+        !matches!(self.state(now), ButtonState::Off)
+    }
+
+    fn is_long_pressed(&self, now: Time<{ CLOCK }>) -> bool {
+        matches!(self.state(now), ButtonState::LongPressed)
+    }
+}
+
+enum ButtonState {
+    Off,
+    Pressed,
+    LongPressed,
+}
+
+pub struct Params<const X: usize> {
+    pattern_length: u8,
+    tracks: [TrackParams; X],
+}
+
+#[derive(Clone, Copy)]
+pub struct TrackParams {
+    /// Length of track. In clock-ticks.
+    pub length: u8,
+
+    /// Track sync parameter.
+    pub sync: TrackSync,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TrackSync {
+    /// Track is restarted at pattern length and reset.
+    Sync,
+    /// Track is restarted only by reset.
+    Reset,
+    /// Track just keeps looping, ignoring both pattern length and reset.
+    Free,
+}
+
+impl Default for TrackParams {
+    fn default() -> Self {
+        Self {
+            length: 64,
+            sync: TrackSync::Sync,
+        }
+    }
+}
+
+impl<const X: usize> Default for Params<X> {
+    fn default() -> Self {
+        Self {
+            pattern_length: 64,
+            tracks: [TrackParams::default(); X],
         }
     }
 }
