@@ -46,18 +46,19 @@ Turning the rotary encoder sets the pitch of the step. The pitch adjusts in the 
 ## Global
 
   * [x] root key
-  * quantize setting
-  * start/pause
-  * switch play mode between immediate/next 16th
-  * copy/paste
+  * [x] quantize setting
+  * [x] play/pause
+  * [x] "switch mode" between immediate/next 16th
+  * [x] copy/paste
   * full reset
 
 ## Per track
 
-  * length
-  * restart with SYNC or loop free
-  * velocity/lfo
-  * select lfo
+  * [x] length
+  * [x] "loop mode" restart with SYNC or loop free
+  * [x] velocity/lfo
+  * [x] select lfo
+  * [x] mute
 
 ## Per step
 
