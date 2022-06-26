@@ -2,7 +2,7 @@ use alg::clock::Time;
 use alg::tempo::Tempo;
 
 use crate::led_grid::BiLed;
-use crate::CLOCK;
+use crate::{Col, Row, CLOCK};
 
 pub const TRACK_COUNT: usize = 4;
 
@@ -10,8 +10,18 @@ pub const TRACK_COUNT: usize = 4;
 pub enum Oper {
     /// Clock pulse. The time is the interval from the previous clock pulse.
     Clock(Time<{ CLOCK }>),
+
     /// Reset.
     Reset,
+
+    /// Input from a rotary encoder.
+    RotaryEncoder(Row, Col, i8),
+
+    /// Input from a LED push button.
+    LedButton(Row, Col, bool),
+
+    /// Input from a rotary encoder button.
+    EncoderButton(Row, Col, bool),
 }
 
 pub struct AppState {
@@ -120,6 +130,18 @@ impl AppState {
                 self.next_is_reset = true;
 
                 info!("Reset");
+            }
+
+            Oper::RotaryEncoder(row, col, v) => {
+                //
+            }
+
+            Oper::LedButton(row, col, on) => {
+                //
+            }
+
+            Oper::EncoderButton(row, col, on) => {
+                //
             }
         }
     }

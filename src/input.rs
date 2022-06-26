@@ -7,7 +7,9 @@ use alg::encoder::{Encoder, QuadratureSource};
 use alg::input::{DebounceDigitalInput, DeltaInput, DigitalEdgeInput};
 use alg::input::{DigitalInput, Edge, EdgeInput, HiLo};
 
-use crate::{InClock, InReset, OperQueue, Row1RotA, Row1RotB, Row1Swl, Row1Swr, Row2RotA};
+use crate::{
+    Col, InClock, InReset, OperQueue, Row, Row1RotA, Row1RotB, Row1Swl, Row1Swr, Row2RotA,
+};
 use crate::{Row2RotB, Row2Swl, Row2Swr, Row3Swl, Row4Swl, Row5Swl, CLOCK};
 
 /// Holder of input for the app.
@@ -31,7 +33,7 @@ pub struct AppInput {
 }
 
 impl AppInput {
-    pub fn read_input(&mut self, now: Time<{ CLOCK }>, col: usize, oper_queue: &mut OperQueue) {
+    pub fn read_input(&mut self, now: Time<{ CLOCK }>, col: Col, oper_queue: &mut OperQueue) {
         // Handle reset before clock, in case we handle them at the same time, the reset
         // should be handled in AppState before the clock.
         {
@@ -53,17 +55,66 @@ impl AppInput {
             }
         }
 
-        let rot_row1 = self.rot_row1.tick(now);
-        let rot_row2 = self.rot_row2.tick(now);
+        // Read row 5 before other rows, since it has the "shift" button which affects
+        // other keys being pushed after.
+        {
+            let swl_row5 = self.swl_row5.tick(now);
+            if let Some(swl_row5) = swl_row5 {
+                oper_queue.push(Oper::LedButton(Row(4), col, swl_row5.is_rising()));
+            }
+        }
+        {
+            let swl_row4 = self.swl_row4.tick(now);
+            if let Some(swl_row4) = swl_row4 {
+                oper_queue.push(Oper::LedButton(Row(3), col, swl_row4.is_rising()));
+            }
+        }
+        {
+            let swl_row3 = self.swl_row3.tick(now);
+            if let Some(swl_row3) = swl_row3 {
+                oper_queue.push(Oper::LedButton(Row(2), col, swl_row3.is_rising()));
+            }
+        }
+        {
+            let swl_row2 = self.swl_row2.tick(now);
+            if let Some(swl_row2) = swl_row2 {
+                oper_queue.push(Oper::LedButton(Row(1), col, swl_row2.is_rising()));
+            }
+        }
+        {
+            let swl_row1 = self.swl_row1.tick(now);
+            if let Some(swl_row1) = swl_row1 {
+                oper_queue.push(Oper::LedButton(Row(0), col, swl_row1.is_rising()));
+            }
+        }
 
-        let swr_row1 = self.swr_row1.tick(now);
-        let swr_row2 = self.swr_row2.tick(now);
+        // Rotary encoder buttons
+        {
+            let swr_row2 = self.swr_row2.tick(now);
+            if let Some(swr_row2) = swr_row2 {
+                oper_queue.push(Oper::EncoderButton(Row(1), col, swr_row2.is_rising()));
+            }
+        }
+        {
+            let swr_row1 = self.swr_row1.tick(now);
+            if let Some(swr_row1) = swr_row1 {
+                oper_queue.push(Oper::EncoderButton(Row(0), col, swr_row1.is_rising()));
+            }
+        }
 
-        let swl_row1 = self.swl_row1.tick(now);
-        let swl_row2 = self.swl_row2.tick(now);
-        let swl_row3 = self.swl_row3.tick(now);
-        let swl_row4 = self.swl_row4.tick(now);
-        let swl_row5 = self.swl_row5.tick(now);
+        // Rotary encoder knob
+        {
+            let rot_row1 = self.rot_row1.tick(now);
+            if rot_row1 != 0 {
+                oper_queue.push(Oper::RotaryEncoder(Row(0), col, rot_row1));
+            }
+        }
+        {
+            let rot_row2 = self.rot_row2.tick(now);
+            if rot_row2 != 0 {
+                oper_queue.push(Oper::RotaryEncoder(Row(1), col, rot_row2));
+            }
+        }
     }
 }
 

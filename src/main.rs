@@ -8,6 +8,7 @@ use alg::clock::Clock;
 use alg::clock::Time;
 use alg::encoder::Encoder;
 use alg::input::DigitalInput;
+use alg::ring_buf::RingBuf;
 use cortex_m_rt::entry;
 use hal::gpio::{gpioa, gpiob, gpioc, gpiod, gpiof};
 use hal::gpio::{DefaultMode, Floating, Input, OpenDrain, Output, PushPull};
@@ -174,7 +175,7 @@ fn main() -> ! {
     let mut run_step_idx = 0;
     let mut run_step_time = GRID_STEPS[run_step_idx].time();
     let mut run_step_start = clock.now();
-    let mut run_col = 0;
+    let mut run_col = Col(0);
     let mut run_do_read = false;
 
     let mut app_state = AppState::new();
@@ -210,7 +211,7 @@ fn main() -> ! {
                     }
                     GridStep::Off(_, col) => {
                         led_grid.set_col(col.0);
-                        run_col = col.0;
+                        run_col = *col;
                         run_do_read = true;
                     }
                 }
@@ -351,49 +352,4 @@ pub type OutGate2 = gpiob::PB7<Output<PushPull>>;
 pub type OutGate3 = gpiob::PB4<Output<PushPull>>;
 pub type OutGate4 = gpiob::PB6<Output<PushPull>>;
 
-pub struct CircleBuf<T, const X: usize> {
-    data: [Option<T>; X],
-    insert: usize,
-    remove: usize,
-}
-
-pub type OperQueue = CircleBuf<Oper, 2>;
-
-impl<T, const X: usize> CircleBuf<T, X> {
-    pub fn new() -> Self {
-        let data = unsafe { core::mem::MaybeUninit::<[Option<T>; X]>::zeroed().assume_init() };
-
-        CircleBuf {
-            data,
-            insert: 0,
-            remove: 0,
-        }
-    }
-
-    #[inline(always)]
-    pub fn len(&self) -> usize {
-        if self.remove <= self.insert {
-            self.insert - self.remove
-        } else {
-            X - self.remove + self.insert
-        }
-    }
-
-    pub fn push(&mut self, el: T) {
-        if self.len() == X - 1 {
-            panic!("CircleBuf push overflow");
-        }
-        self.data[self.insert] = Some(el);
-        self.insert += 1;
-        self.insert %= X;
-    }
-
-    pub fn pop(&mut self) -> Option<T> {
-        let x = self.data[self.remove].take();
-        if x.is_some() {
-            self.remove += 1;
-            self.remove %= X;
-        }
-        x
-    }
-}
+pub type OperQueue = RingBuf<Oper, 2>;
