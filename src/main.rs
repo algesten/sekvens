@@ -16,12 +16,13 @@ use hal::stm32::{self as pac};
 use hal::time::Hertz;
 use input::QuadSource;
 use led_grid::{BiLed, LedGridPins};
+use state::Oper;
 use stm32g0xx_hal as hal;
 
 use crate::flip_pin::{FlipPin, IntoFlipPin};
 use crate::input::{AppInput, PinDigitalIn};
 use crate::led_grid::LedGrid;
-use crate::state::{AppState, OperQueue};
+use crate::state::AppState;
 
 mod flip_pin;
 mod input;
@@ -227,14 +228,14 @@ fn main() -> ! {
 
         let len = oper_queue.len();
         if len > 0 {
-            /// Limit the number of operations we process max per loop so
-            /// if there is a lot of input, we don't stall LED lighting etc.
-            const MAX_CONSUME: usize = 3;
+            // Max nunmber of operations to consume per loop. In case we
+            // want to spread out the joy over several loop rounds.
+            const CONSUME_MAX: usize = 3;
 
-            let max = MAX_CONSUME.min(len);
-
-            // Apply the operations to the state.
-            app_state.update(now, oper_queue.drain(0..max));
+            for _ in 0..len.min(CONSUME_MAX) {
+                let oper = oper_queue.pop();
+                app_state.apply_oper(now, oper);
+            }
         }
 
         {
@@ -354,3 +355,51 @@ pub type OutGate1 = gpiob::PB5<Output<PushPull>>;
 pub type OutGate2 = gpiob::PB7<Output<PushPull>>;
 pub type OutGate3 = gpiob::PB4<Output<PushPull>>;
 pub type OutGate4 = gpiob::PB6<Output<PushPull>>;
+
+pub struct CircleBuf<T, const X: usize> {
+    data: [Option<T>; X],
+    insert: usize,
+    remove: usize,
+}
+
+pub type OperQueue = CircleBuf<Oper, 2>;
+
+impl<T, const X: usize> CircleBuf<T, X> {
+    pub fn new() -> Self {
+        let data = unsafe { core::mem::MaybeUninit::<[Option<T>; X]>::zeroed().assume_init() };
+
+        CircleBuf {
+            data,
+            insert: 0,
+            remove: 0,
+        }
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        if self.remove <= self.insert {
+            self.insert - self.remove
+        } else {
+            X - self.remove + self.insert
+        }
+    }
+
+    pub fn push(&mut self, el: T) {
+        if self.len() == X - 1 {
+            panic!("CircleBuf push overflow");
+        }
+        self.data[self.insert] = Some(el);
+        self.insert += 1;
+        self.insert %= X;
+    }
+
+    pub fn pop(&mut self) -> T {
+        if self.len() == 0 {
+            panic!("CircleBuf pop underflow");
+        }
+        let x = self.data[self.remove].take().unwrap();
+        self.remove += 1;
+        self.remove %= X;
+        x
+    }
+}

@@ -1,13 +1,13 @@
 use core::fmt::Debug;
 
 use crate::hal::prelude::InputPin;
-use crate::state::{Oper, OperQueue};
+use crate::state::Oper;
 use alg::clock::Time;
 use alg::encoder::{Encoder, QuadratureSource};
 use alg::input::{DebounceDigitalInput, DeltaInput, DigitalEdgeInput};
 use alg::input::{DigitalInput, Edge, EdgeInput, HiLo};
 
-use crate::{InClock, InReset, Row1RotA, Row1RotB, Row1Swl, Row1Swr, Row2RotA};
+use crate::{InClock, InReset, OperQueue, Row1RotA, Row1RotB, Row1Swl, Row1Swr, Row2RotA};
 use crate::{Row2RotB, Row2Swl, Row2Swr, Row3Swl, Row4Swl, Row5Swl, CLOCK};
 
 /// Holder of input for the app.

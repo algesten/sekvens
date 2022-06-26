@@ -1,15 +1,11 @@
 use alg::clock::Time;
 use alg::tempo::Tempo;
-use arrayvec::ArrayVec;
 
 use crate::led_grid::BiLed;
 use crate::CLOCK;
 
 pub const TRACK_COUNT: usize = 4;
 
-pub type OperQueue = ArrayVec<Oper, 64>;
-
-#[derive(Debug)]
 /// The operations that can be done on the state.
 pub enum Oper {
     /// Clock pulse. The time is the interval from the previous clock pulse.
@@ -20,7 +16,7 @@ pub enum Oper {
 
 pub struct AppState {
     /// If next tick is going to reset back to 0.
-    next_is_reset: bool,
+    pub next_is_reset: bool,
 
     /// Beat detection/tempo
     tempo: Tempo<{ CLOCK }>,
@@ -58,14 +54,14 @@ pub struct TrackParams {
     pub sync: TrackSync,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TrackSync {
     /// Track is restarted at pattern length and reset.
-    Sync = 0,
+    Sync,
     /// Track is restarted only by reset.
-    Reset = 1,
+    Reset,
     /// Track just keeps looping, ignoring both pattern length and reset.
-    Free = 2,
+    Free,
 }
 
 impl AppState {
@@ -94,13 +90,7 @@ impl AppState {
 }
 
 impl AppState {
-    pub fn update(&mut self, now: Time<{ CLOCK }>, opers: impl Iterator<Item = Oper>) {
-        for oper in opers {
-            self.apply_oper(now, oper);
-        }
-    }
-
-    fn apply_oper(&mut self, now: Time<{ CLOCK }>, oper: Oper) {
+    pub fn apply_oper(&mut self, now: Time<{ CLOCK }>, oper: Oper) {
         match oper {
             Oper::Clock(interval) => {
                 self.tempo.predict(interval);
