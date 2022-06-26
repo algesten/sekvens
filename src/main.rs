@@ -35,12 +35,15 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 // 48 MHz is max.
-pub const CPU_SPEED: u32 = 48_000_000;
+pub const _CPU_SPEED: u32 = 48_000_000;
+
+// Clock speed is in microseconds.
+pub const CLOCK: u32 = 1_000_000;
 
 #[entry]
 fn main() -> ! {
     // Ensure constants are sane.
-    assert!(TIME_READ_WAIT.count < TIME_OFF);
+    assert!(TIME_READ_WAIT.subsec_micros() < TIME_OFF);
 
     // 1. HAL init
     // Set up ARM Cortex-M peripherals. These are common to many MCUs, including all STM32 ones.
@@ -51,15 +54,8 @@ fn main() -> ! {
     // 2. System clock config
     let mut clocks = dp.RCC.constrain();
 
-    let mut syst = cp.SYST;
-    {
-        syst.set_reload(1);
-        syst.clear_current();
-        syst.enable_counter();
-    }
-
-    let mut delay = syst.delay(&mut clocks);
-    delay.delay_ms(1u8);
+    let mut delay = cp.SYST.delay(&mut clocks);
+    delay.delay_us(1_u8);
 
     // The global trace enable (DCB::enable_trace) should be set before enabling the cycle counter
     // cp.DCB.enable_trace();
@@ -161,7 +157,12 @@ fn main() -> ! {
 
     // App state stuff
 
-    let mut clock = Clock::<_, CPU_SPEED>::new(pac::SYST::get_current);
+    let mut clock = {
+        let stop_watch = dp.TIM3.stopwatch(&mut clocks);
+        let orig = stop_watch.now();
+        let sample_fn = move || stop_watch.elapsed(orig).0;
+        Clock::<_, CLOCK>::new_with_bits(12, sample_fn)
+    };
 
     let mut start = clock.now();
     let mut loop_count = 0_u64;
@@ -254,7 +255,7 @@ const TIME_OFF: i64 = 400;
 /// Time to wait after setting the grid up for
 /// reading input and actually reading. Must
 /// be less than TIME_OFF.
-const TIME_READ_WAIT: Time<CPU_SPEED> = Time::from_micros(50);
+const TIME_READ_WAIT: Time<CLOCK> = Time::from_micros(50);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Row(usize);
@@ -269,7 +270,7 @@ pub enum GridStep {
 }
 
 impl GridStep {
-    pub fn time(&self) -> Time<CPU_SPEED> {
+    pub fn time(&self) -> Time<CLOCK> {
         let v = match self {
             GridStep::Led(v, _, _) => v,
             GridStep::Off(v, _) => v,

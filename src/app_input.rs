@@ -7,7 +7,7 @@ use alg::input::{DebounceDigitalInput, DeltaInput, DigitalEdgeInput};
 use alg::input::{DigitalInput, Edge, EdgeInput, HiLo};
 
 use crate::{InClock, InReset, Row1RotA, Row1RotB, Row1Swl, Row1Swr, Row2RotA};
-use crate::{Row2RotB, Row2Swl, Row2Swr, Row3Swl, Row4Swl, Row5Swl, CPU_SPEED};
+use crate::{Row2RotB, Row2Swl, Row2Swr, Row3Swl, Row4Swl, Row5Swl, CLOCK};
 
 /// Holder of input for the app.
 pub struct AppInput {
@@ -30,9 +30,9 @@ pub struct AppInput {
 impl AppInput {
     pub fn read_input(
         &mut self,
-        now: Time<{ CPU_SPEED }>,
+        now: Time<{ CLOCK }>,
         col: usize,
-        update: &mut dyn AppInputUpdate<{ CPU_SPEED }>,
+        update: &mut dyn AppInputUpdate<{ CLOCK }>,
     ) {
         let clk = self.in_clock.tick(now);
         let rst = self.in_reset.tick(now);
@@ -74,10 +74,10 @@ pub trait AppInputUpdate<const CLK: u32> {
     );
 }
 
-pub type DigitalIn<A> = DigitalEdgeInput<PinDigitalIn<A>, { CPU_SPEED }>;
+pub type DigitalIn<A> = DigitalEdgeInput<PinDigitalIn<A>, { CLOCK }>;
 
 pub type PushButton<A> =
-    DigitalEdgeInput<DebounceDigitalInput<PinDigitalIn<A>, { CPU_SPEED }>, { CPU_SPEED }>;
+    DigitalEdgeInput<DebounceDigitalInput<PinDigitalIn<A>, { CLOCK }>, { CLOCK }>;
 
 pub struct QuadSource<A, B> {
     pub pin_a: A,
