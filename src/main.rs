@@ -228,12 +228,7 @@ fn main() -> ! {
 
         let len = oper_queue.len();
         if len > 0 {
-            // Max nunmber of operations to consume per loop. In case we
-            // want to spread out the joy over several loop rounds.
-            const CONSUME_MAX: usize = 3;
-
-            for _ in 0..len.min(CONSUME_MAX) {
-                let oper = oper_queue.pop();
+            while let Some(oper) = oper_queue.pop() {
                 app_state.apply_oper(now, oper);
             }
         }
@@ -393,13 +388,12 @@ impl<T, const X: usize> CircleBuf<T, X> {
         self.insert %= X;
     }
 
-    pub fn pop(&mut self) -> T {
-        if self.len() == 0 {
-            panic!("CircleBuf pop underflow");
+    pub fn pop(&mut self) -> Option<T> {
+        let x = self.data[self.remove].take();
+        if x.is_some() {
+            self.remove += 1;
+            self.remove %= X;
         }
-        let x = self.data[self.remove].take().unwrap();
-        self.remove += 1;
-        self.remove %= X;
         x
     }
 }
