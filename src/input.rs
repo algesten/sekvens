@@ -1,6 +1,7 @@
 use core::fmt::Debug;
 
 use crate::hal::prelude::InputPin;
+use crate::state::{Oper, OperQueue};
 use alg::clock::Time;
 use alg::encoder::{Encoder, QuadratureSource};
 use alg::input::{DebounceDigitalInput, DeltaInput, DigitalEdgeInput};
@@ -25,17 +26,32 @@ pub struct AppInput {
     pub swl_row3: PushButton<Row3Swl>,
     pub swl_row4: PushButton<Row4Swl>,
     pub swl_row5: PushButton<Row5Swl>,
+
+    pub last_clock: Option<Time<{ CLOCK }>>,
 }
 
 impl AppInput {
-    pub fn read_input(
-        &mut self,
-        now: Time<{ CLOCK }>,
-        col: usize,
-        update: &mut dyn AppInputUpdate<{ CLOCK }>,
-    ) {
-        let clk = self.in_clock.tick(now);
-        let rst = self.in_reset.tick(now);
+    pub fn read_input(&mut self, now: Time<{ CLOCK }>, col: usize, oper_queue: &mut OperQueue) {
+        // Handle reset before clock, in case we handle them at the same time, the reset
+        // should be handled in AppState before the clock.
+        {
+            let rst = self.in_reset.tick(now);
+            // falling since inverted
+            if let Some(Edge::Falling(_)) = rst {
+                oper_queue.push(Oper::Reset);
+            }
+        }
+
+        {
+            let clk = self.in_clock.tick(now);
+            // falling since inverted
+            if let Some(Edge::Falling(_)) = clk {
+                if let Some(last) = self.last_clock {
+                    let interval = now - last;
+                    oper_queue.push(Oper::Clock(interval));
+                }
+            }
+        }
 
         let rot_row1 = self.rot_row1.tick(now);
         let rot_row2 = self.rot_row2.tick(now);
@@ -48,30 +64,7 @@ impl AppInput {
         let swl_row3 = self.swl_row3.tick(now);
         let swl_row4 = self.swl_row4.tick(now);
         let swl_row5 = self.swl_row5.tick(now);
-
-        update.update_input(
-            col, clk, rst, rot_row1, rot_row2, swr_row1, swr_row2, swl_row1, swl_row2, swl_row3,
-            swl_row4, swl_row5,
-        );
     }
-}
-
-pub trait AppInputUpdate<const CLK: u32> {
-    fn update_input(
-        &mut self,
-        col: usize,
-        clk: Option<Edge<CLK>>,
-        rst: Option<Edge<CLK>>,
-        rot_row1: i8,
-        rot_row2: i8,
-        swr_row1: Option<Edge<CLK>>,
-        swr_row2: Option<Edge<CLK>>,
-        swl_row1: Option<Edge<CLK>>,
-        swl_row2: Option<Edge<CLK>>,
-        swl_row3: Option<Edge<CLK>>,
-        swl_row4: Option<Edge<CLK>>,
-        swl_row5: Option<Edge<CLK>>,
-    );
 }
 
 pub type DigitalIn<A> = DigitalEdgeInput<PinDigitalIn<A>, { CLOCK }>;

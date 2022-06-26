@@ -8,25 +8,25 @@ use alg::clock::Clock;
 use alg::clock::Time;
 use alg::encoder::Encoder;
 use alg::input::DigitalInput;
-use app_input::QuadSource;
 use cortex_m_rt::entry;
 use hal::gpio::{gpioa, gpiob, gpioc, gpiod, gpiof};
 use hal::gpio::{DefaultMode, Floating, Input, OpenDrain, Output, PushPull};
 use hal::prelude::*;
-use hal::stm32 as pac;
+use hal::stm32::{self as pac};
 use hal::time::Hertz;
+use input::QuadSource;
 use led_grid::{BiLed, LedGridPins};
 use stm32g0xx_hal as hal;
 
-use crate::app_input::{AppInput, PinDigitalIn};
-use crate::app_state::AppState;
 use crate::flip_pin::{FlipPin, IntoFlipPin};
+use crate::input::{AppInput, PinDigitalIn};
 use crate::led_grid::LedGrid;
+use crate::state::{AppState, OperQueue};
 
-mod app_input;
-mod app_state;
 mod flip_pin;
+mod input;
 mod led_grid;
+mod state;
 
 // Setup logging via defmt_rtt. "rtt" is "real time transfer"
 use defmt_rtt as _;
@@ -149,20 +149,23 @@ fn main() -> ! {
         swl_row3: PinDigitalIn(row3_swl).debounce().edge(),
         swl_row4: PinDigitalIn(row4_swl).debounce().edge(),
         swl_row5: PinDigitalIn(row5_swl).debounce().edge(),
+
+        last_clock: None,
     };
 
     let mut led_grid = LedGrid::new(led_grid_pins);
 
     led_grid.set_leds(0, BiLed::Off, &[BiLed::Off; 8]);
 
-    // App state stuff
+    let stop_watch = dp.TIM3.stopwatch(&mut clocks);
 
     let mut clock = {
-        let stop_watch = dp.TIM3.stopwatch(&mut clocks);
         let orig = stop_watch.now();
         let sample_fn = move || stop_watch.elapsed(orig).0;
         Clock::<_, CLOCK>::new_with_bits(12, sample_fn)
     };
+
+    // App state stuff
 
     let mut start = clock.now();
     let mut loop_count = 0_u64;
@@ -174,6 +177,7 @@ fn main() -> ! {
     let mut run_do_read = false;
 
     let mut app_state = AppState::new();
+    let mut oper_queue = OperQueue::new();
 
     info!("Starting…");
 
@@ -217,8 +221,20 @@ fn main() -> ! {
                 run_do_read = false;
 
                 // Read input and push update into app state.
-                app_input.read_input(now, run_col, &mut app_state);
+                app_input.read_input(now, run_col, &mut oper_queue);
             }
+        }
+
+        let len = oper_queue.len();
+        if len > 0 {
+            /// Limit the number of operations we process max per loop so
+            /// if there is a lot of input, we don't stall LED lighting etc.
+            const MAX_CONSUME: usize = 3;
+
+            let max = MAX_CONSUME.min(len);
+
+            // Apply the operations to the state.
+            app_state.update(now, oper_queue.drain(0..max));
         }
 
         {

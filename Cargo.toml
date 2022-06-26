@@ -17,6 +17,7 @@ cortex-m-rt = "*"
 fugit = "*"
 
 alg = { version = "*", path = "../alg" }
+arrayvec = { version = "0.7", default-features = false }
 
 # cargo build/run
 [profile.dev]
