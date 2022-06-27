@@ -23,24 +23,24 @@ alg = { version = "*", path = "../alg" }
 codegen-units = 1
 debug = 2
 debug-assertions = true
-incremental = true
+incremental = false
 opt-level = 3
 overflow-checks = true
-lto = true
+lto = "fat"
 
 # cargo build/run --release
 [profile.release]
 codegen-units = 1
 debug = 2
 debug-assertions = true
-incremental = true
+incremental = false
 opt-level = 3
 overflow-checks = true
-lto = true
+lto = "fat"
 
 # optimize all the other dependencies, this reduces
 # the flash size for development by optimizing away dependecies
 # but not the top crate.
 [profile.dev.package."*"]
 codegen-units = 1 # better optimizations
-opt-level = "z"
+opt-level = "s"
