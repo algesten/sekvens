@@ -14,7 +14,6 @@ stm32g0xx-hal = { version = "0.1", features = ["rt", "stm32g030"] }
 # Versions determined by the stm32f4xx-hal dependency
 cortex-m = "*"
 cortex-m-rt = "*"
-fugit = "*"
 
 alg = { version = "*", path = "../alg" }
 

@@ -154,15 +154,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fugit"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d8595783d5ca52f0e9830036b3d24f359fae0fcc6bb5fde41f2dd82997cb58"
-dependencies = [
- "gcd",
-]
-
-[[package]]
 name = "gcd"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,7 +318,6 @@ dependencies = [
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
- "fugit",
  "panic-probe",
  "stm32g0xx-hal",
 ]
