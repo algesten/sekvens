@@ -1,5 +1,3 @@
-use core::fmt::Debug;
-
 use crate::hal::prelude::InputPin;
 use crate::state::Oper;
 use alg::clock::Time;
@@ -33,6 +31,7 @@ pub struct AppInput {
 }
 
 impl AppInput {
+    #[inline(never)]
     pub fn read_input(&mut self, now: Time<{ CLOCK }>, col: Col, oper_queue: &mut OperQueue) {
         // Handle reset before clock, in case we handle them at the same time, the reset
         // should be handled in AppState before the clock.
@@ -131,16 +130,22 @@ pub struct QuadSource<A, B> {
 impl<A, B> QuadratureSource for QuadSource<A, B>
 where
     A: InputPin,
-    <A as crate::hal::prelude::InputPin>::Error: Debug,
     B: InputPin,
-    <B as crate::hal::prelude::InputPin>::Error: Debug,
 {
     fn pin_a(&self) -> bool {
-        self.pin_a.is_high().unwrap()
+        if let Ok(v) = self.pin_a.is_high() {
+            return v;
+        } else {
+            panic!("pin_a err");
+        }
     }
 
     fn pin_b(&self) -> bool {
-        self.pin_b.is_high().unwrap()
+        if let Ok(v) = self.pin_b.is_high() {
+            return v;
+        } else {
+            panic!("pin_b err");
+        }
     }
 }
 
@@ -149,13 +154,16 @@ pub struct PinDigitalIn<A>(pub A);
 impl<A, const CLK: u32> DigitalInput<CLK> for PinDigitalIn<A>
 where
     A: InputPin,
-    <A as crate::hal::prelude::InputPin>::Error: Debug,
 {
     fn tick(&mut self, now: Time<CLK>) -> HiLo<CLK> {
-        if self.0.is_high().unwrap() {
-            HiLo::Hi(now)
+        if let Ok(v) = self.0.is_high() {
+            if v {
+                HiLo::Hi(now)
+            } else {
+                HiLo::Lo(now)
+            }
         } else {
-            HiLo::Lo(now)
+            panic!("tick err");
         }
     }
 }

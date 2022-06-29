@@ -74,6 +74,7 @@ impl AppState {
 }
 
 impl AppState {
+    #[inline(never)]
     pub fn apply_oper(&mut self, now: Time<{ CLOCK }>, oper: Oper) {
         match oper {
             Oper::Clock(interval) => {
