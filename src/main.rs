@@ -78,7 +78,7 @@ fn main() -> ! {
             dp.SPI2,
             (sck, miso, mosi),
             spi::MODE_0,
-            Hertz(3_000_000),
+            Hertz::Hz(3_000_000),
             &mut clocks,
         )
     };
@@ -87,7 +87,13 @@ fn main() -> ! {
         use hal::i2c;
         let scl: I2cScl = gpiob.pb10.into_open_drain_output();
         let sda: I2cSda = gpiob.pb11.into_open_drain_output();
-        i2c::I2c::i2c2(dp.I2C2, sda, scl, i2c::Config::new(Hertz(30)), &mut clocks)
+        i2c::I2c::i2c2(
+            dp.I2C2,
+            sda,
+            scl,
+            i2c::Config::new(Hertz::Hz(30)),
+            &mut clocks,
+        )
     };
 
     let _cs_fram: CsFRam = gpioa.pa1.into_push_pull_output();
@@ -163,7 +169,7 @@ fn main() -> ! {
 
     let mut clock = {
         let orig = stop_watch.now();
-        let sample_fn = move || stop_watch.elapsed(orig).0;
+        let sample_fn = move || stop_watch.elapsed(orig).ticks();
         Clock::<_, CLOCK>::new_with_bits(12, sample_fn)
     };
 
