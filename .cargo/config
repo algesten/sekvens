@@ -1,5 +1,5 @@
 [target.thumbv6m-none-eabi]
-runner = "probe-run --chip STM32G030C6Tx"
+runner = "probe-run --chip STM32G030C8Tx"
 
 rustflags = [
   "-C", "link-arg=-Tlink.x",  # cortex-m-rt to read the memory.x file
