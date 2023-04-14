@@ -31,6 +31,29 @@ impl LedGrid {
             col_mode: false,
         }
     }
+
+    fn rows(&mut self) -> [&mut dyn FlipPinExt; 5] {
+        [
+            &mut self.pins.row1,
+            &mut self.pins.row2,
+            &mut self.pins.row3,
+            &mut self.pins.row4,
+            &mut self.pins.row5,
+        ]
+    }
+
+    fn cols(&mut self) -> [&mut dyn FlipPinExt; 8] {
+        [
+            &mut self.pins.col1,
+            &mut self.pins.col2,
+            &mut self.pins.col3,
+            &mut self.pins.col4,
+            &mut self.pins.col5,
+            &mut self.pins.col6,
+            &mut self.pins.col7,
+            &mut self.pins.col8,
+        ]
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -48,37 +71,16 @@ impl Default for BiLed {
 
 impl LedGrid {
     pub fn set_col(&mut self, col: usize) {
-        let pins = &mut self.pins;
-
         // disable row pins in col mode
         if !self.col_mode {
-            let rows: &mut [&mut dyn FlipPinExt] = &mut [
-                &mut pins.row1,
-                &mut pins.row2,
-                &mut pins.row3,
-                &mut pins.row4,
-                &mut pins.row5,
-            ];
-
-            for r in rows {
+            for r in self.rows() {
                 r.disable();
             }
 
             self.col_mode = true;
         }
 
-        let cols: &mut [&mut dyn FlipPinExt] = &mut [
-            &mut pins.col1,
-            &mut pins.col2,
-            &mut pins.col3,
-            &mut pins.col4,
-            &mut pins.col5,
-            &mut pins.col6,
-            &mut pins.col7,
-            &mut pins.col8,
-        ];
-
-        for (i, c) in cols.iter_mut().enumerate() {
+        for (i, c) in self.cols().iter_mut().enumerate() {
             if i == col {
                 c.set_output(true);
             } else {
@@ -92,17 +94,7 @@ impl LedGrid {
             self.col_mode = false;
         }
 
-        let pins = &mut self.pins;
-
-        let rows: &mut [&mut dyn FlipPinExt] = &mut [
-            &mut pins.row1,
-            &mut pins.row2,
-            &mut pins.row3,
-            &mut pins.row4,
-            &mut pins.row5,
-        ];
-
-        for (i, r) in rows.iter_mut().enumerate() {
+        for (i, r) in self.rows().iter_mut().enumerate() {
             if row != i || on == BiLed::Off {
                 r.disable();
             } else {
@@ -113,18 +105,7 @@ impl LedGrid {
             }
         }
 
-        let cols: &mut [&mut dyn FlipPinExt] = &mut [
-            &mut pins.col1,
-            &mut pins.col2,
-            &mut pins.col3,
-            &mut pins.col4,
-            &mut pins.col5,
-            &mut pins.col6,
-            &mut pins.col7,
-            &mut pins.col8,
-        ];
-
-        for (c, led) in cols.iter_mut().zip(leds.iter()) {
+        for (c, led) in self.cols().iter_mut().zip(leds.iter()) {
             if on == BiLed::Off || *led != on {
                 c.disable();
             } else {
