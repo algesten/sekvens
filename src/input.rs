@@ -31,74 +31,47 @@ pub struct AppInput {
 }
 
 impl AppInput {
-    #[inline(never)]
     pub fn read_input(&mut self, now: Time<{ CLOCK }>, col: Col, oper_queue: &mut OperQueue) {
         // Handle reset before clock, in case we handle them at the same time, the reset
         // should be handled in AppState before the clock.
-        {
-            let rst = self.in_reset.tick(now);
-            // falling since inverted
-            if let Some(Edge::Falling(_)) = rst {
-                oper_queue.push(Oper::Reset);
-            }
+
+        // "Falling" because the input is inverted
+        if matches!(self.in_reset.tick(now), Some(Edge::Falling(_))) {
+            oper_queue.push(Oper::Reset);
         }
 
-        {
-            let clk = self.in_clock.tick(now);
-            // falling since inverted
-            if let Some(Edge::Falling(_)) = clk {
-                if let Some(last) = self.last_clock {
-                    let interval = now - last;
-                    oper_queue.push(Oper::Clock(interval));
-                }
+        // "Falling" because the input is inverted
+        if matches!(self.in_clock.tick(now), Some(Edge::Falling(_))) {
+            if let Some(last) = self.last_clock {
+                let interval = now - last;
+                oper_queue.push(Oper::Clock(interval));
             }
         }
 
         // Read row 5 before other rows, since it has the "shift" button which affects
         // other keys being pushed after.
-        {
-            let swl_row5 = self.swl_row5.tick(now);
-            if let Some(swl_row5) = swl_row5 {
-                oper_queue.push(Oper::LedButton(Row(4), col, swl_row5.is_rising()));
-            }
+        if let Some(edge_row5) = self.swl_row5.tick(now) {
+            oper_queue.push(Oper::LedButton(Row(4), col, edge_row5.is_rising()));
         }
-        {
-            let swl_row4 = self.swl_row4.tick(now);
-            if let Some(swl_row4) = swl_row4 {
-                oper_queue.push(Oper::LedButton(Row(3), col, swl_row4.is_rising()));
-            }
+        if let Some(edge_row4) = self.swl_row4.tick(now) {
+            oper_queue.push(Oper::LedButton(Row(3), col, edge_row4.is_rising()));
         }
-        {
-            let swl_row3 = self.swl_row3.tick(now);
-            if let Some(swl_row3) = swl_row3 {
-                oper_queue.push(Oper::LedButton(Row(2), col, swl_row3.is_rising()));
-            }
+        if let Some(edge_row3) = self.swl_row3.tick(now) {
+            oper_queue.push(Oper::LedButton(Row(2), col, edge_row3.is_rising()));
         }
-        {
-            let swl_row2 = self.swl_row2.tick(now);
-            if let Some(swl_row2) = swl_row2 {
-                oper_queue.push(Oper::LedButton(Row(1), col, swl_row2.is_rising()));
-            }
+        if let Some(edge_row2) = self.swl_row2.tick(now) {
+            oper_queue.push(Oper::LedButton(Row(1), col, edge_row2.is_rising()));
         }
-        {
-            let swl_row1 = self.swl_row1.tick(now);
-            if let Some(swl_row1) = swl_row1 {
-                oper_queue.push(Oper::LedButton(Row(0), col, swl_row1.is_rising()));
-            }
+        if let Some(edge_row1) = self.swl_row1.tick(now) {
+            oper_queue.push(Oper::LedButton(Row(0), col, edge_row1.is_rising()));
         }
 
         // Rotary encoder buttons
-        {
-            let swr_row2 = self.swr_row2.tick(now);
-            if let Some(swr_row2) = swr_row2 {
-                oper_queue.push(Oper::EncoderButton(Row(1), col, swr_row2.is_rising()));
-            }
+        if let Some(edge_row2) = self.swr_row2.tick(now) {
+            oper_queue.push(Oper::EncoderButton(Row(1), col, edge_row2.is_rising()));
         }
-        {
-            let swr_row1 = self.swr_row1.tick(now);
-            if let Some(swr_row1) = swr_row1 {
-                oper_queue.push(Oper::EncoderButton(Row(0), col, swr_row1.is_rising()));
-            }
+        if let Some(edge_row1) = self.swr_row1.tick(now) {
+            oper_queue.push(Oper::EncoderButton(Row(0), col, edge_row1.is_rising()));
         }
 
         // Rotary encoder knob

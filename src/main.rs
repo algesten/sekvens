@@ -4,8 +4,7 @@
 #[macro_use]
 extern crate defmt;
 
-use alg::clock::Clock;
-use alg::clock::Time;
+use alg::clock::{self, Clock};
 use alg::encoder::Encoder;
 use alg::input::DigitalInput;
 use alg::ring_buf::RingBuf;
@@ -25,6 +24,7 @@ use crate::input::{AppInput, PinDigitalIn};
 use crate::led_grid::LedGrid;
 use crate::state::AppState;
 
+mod button;
 mod flip_pin;
 mod input;
 mod led_grid;
@@ -41,6 +41,8 @@ pub const _CPU_SPEED: u32 = 48_000_000;
 
 // Clock speed is in microseconds.
 pub const CLOCK: u32 = 1_000_000;
+
+pub type Time = clock::Time<{ CLOCK }>;
 
 #[entry]
 fn main() -> ! {
@@ -240,6 +242,9 @@ fn main() -> ! {
             }
         }
 
+        // After we applied operations.
+        app_state.tick(now);
+
         {
             const REPORT_MILLIS: i64 = 1500;
 
@@ -274,7 +279,7 @@ const TIME_OFF: i64 = 400;
 /// Time to wait after setting the grid up for
 /// reading input and actually reading. Must
 /// be less than TIME_OFF.
-const TIME_READ_WAIT: Time<CLOCK> = Time::from_micros(50);
+const TIME_READ_WAIT: Time = Time::from_micros(50);
 
 #[derive(Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub struct Row(usize);
@@ -289,7 +294,7 @@ pub enum GridStep {
 }
 
 impl GridStep {
-    pub fn time(&self) -> Time<CLOCK> {
+    pub fn time(&self) -> Time {
         let v = match self {
             GridStep::Led(v, _, _) => v,
             GridStep::Off(v, _) => v,
