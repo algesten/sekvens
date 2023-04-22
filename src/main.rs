@@ -4,6 +4,8 @@
 #[macro_use]
 extern crate defmt;
 
+use core::ops::Deref;
+
 use alg::clock::{self, Clock};
 use alg::encoder::Encoder;
 use alg::input::DigitalInput;
@@ -24,10 +26,11 @@ use crate::input::{AppInput, PinDigitalIn};
 use crate::led_grid::LedGrid;
 use crate::state::AppState;
 
-mod button;
+mod buttons;
 mod flip_pin;
 mod input;
 mod led_grid;
+mod mstate;
 mod state;
 
 // Setup logging via defmt_rtt. "rtt" is "real time transfer"
@@ -286,6 +289,22 @@ pub struct Row(usize);
 #[derive(Clone, Copy, PartialEq, Eq, defmt::Format)]
 pub struct Col(usize);
 
+impl Deref for Row {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for Col {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 pub enum GridStep {
     /// Light a row of LEDs
     Led(i64, BiLed, Row),
@@ -311,8 +330,19 @@ static GRID_STEPS: &[GridStep] = &[
     GridStep::Led(TIME_RED, BiLed::Red, Row(1)),
     GridStep::Off(TIME_OFF, Col(2)),
     GridStep::Led(TIME_GRN, BiLed::Grn, Row(1)),
-    GridStep::Off(TIME_OFF / 2, Col(3)),
-    GridStep::Off(TIME_OFF / 2, Col(4)),
+    GridStep::Off(TIME_OFF, Col(3)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(2)),
+    GridStep::Off(TIME_OFF, Col(4)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(2)),
+    GridStep::Off(TIME_OFF, Col(5)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(3)),
+    GridStep::Off(TIME_OFF, Col(6)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(3)),
+    GridStep::Off(TIME_OFF, Col(7)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(4)),
+    GridStep::Off(TIME_OFF, Col(0)),
+    GridStep::Led(TIME_RED, BiLed::Red, Row(4)),
+    GridStep::Off(TIME_OFF, Col(1)),
 ];
 
 pub type Spi2Sck = gpioa::PA0<DefaultMode>;

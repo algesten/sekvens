@@ -1,7 +1,8 @@
 use alg::tempo::Tempo;
 
-use crate::button::Button;
+use crate::buttons::Buttons;
 use crate::led_grid::BiLed;
+use crate::mstate::MachineState;
 use crate::{Col, Row, Time, CLOCK};
 
 pub const TRACK_COUNT: usize = 4;
@@ -22,7 +23,7 @@ pub enum Oper {
     LedButton(Row, Col, bool),
 
     /// Input from a rotary encoder button.
-    EncoderButton(Row, Col, bool),
+    RotaryButton(Row, Col, bool),
 }
 
 #[derive(Default)]
@@ -35,11 +36,11 @@ pub struct AppState {
     /// Beat detection/tempo
     tempo: Tempo<{ CLOCK }>,
 
-    /// Interval to next predicted clock tick.
+    /// Interval to next predicted clock.
     predicted: Time,
 
-    /// Ever increasing count of the clock tick. Never resets.
-    tick_count: u64,
+    /// Ever increasing count of the clock. Never resets.
+    clock_count: u64,
 
     /// Current global playhead. Goes from 0..whenever external reset comes.
     playhead: u64,
@@ -50,28 +51,17 @@ pub struct AppState {
     /// Playhead for each track.
     track_playhead: [usize; TRACK_COUNT],
 
-    /// Buttons top right.
-    buttons_top: [[Button; 4]; 3],
-
-    /// Step buttons underneath each rotary encoder.
-    buttons_step: [[Button; 8]; 2],
-
-    /// Step buttons that is the rotary encoder.
-    buttons_step_rot: [[Button; 8]; 2],
+    /// Button state
+    buttons: Buttons,
 
     /// LED states.
+    ///
+    /// row 0 - step row 1
+    /// row 1 - step row 2
+    /// row 2 - pattern (col 4-7)
+    /// row 3 - track (col 4-7)
+    /// row 4 - shift, clear, vel (col 4-7)
     leds: [[BiLed; 8]; 5],
-}
-
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
-pub enum MachineState {
-    #[default]
-    Normal,
-    Velocity,
-    Shift,
-    ChordUpper,
-    ChordLower,
-    Reset,
 }
 
 impl AppState {
@@ -91,7 +81,7 @@ impl AppState {
         match oper {
             Oper::Clock(interval) => {
                 self.tempo.predict(interval);
-                self.tick_count += 1;
+                self.clock_count += 1;
 
                 if self.next_is_reset {
                     self.next_is_reset = false;
@@ -105,7 +95,7 @@ impl AppState {
                 trace!(
                     "Tick playhead: {} tick_count: {}",
                     self.playhead,
-                    self.tick_count
+                    self.clock_count
                 );
             }
 
@@ -119,62 +109,30 @@ impl AppState {
                 info!("Reset");
             }
 
-            Oper::LedButton(row, col, on) => {
-                if row.0 < 2 {
-                    self.buttons_step[row.0][col.0].set_on(on, now);
-                } else if row.0 >= 2 && row.0 <= 4 {
-                    let col = if col.0 >= 4 { col.0 - 4 } else { col.0 };
-                    self.buttons_top[row.0 - 2][col].set_on(on, now);
-                } else {
-                    panic!("Unknown LedButton {:?} {:?}", row, col);
-                }
-            }
-
-            Oper::EncoderButton(row, col, on) => {
-                if row.0 < 2 {
-                    self.buttons_step_rot[row.0][col.0].set_on(on, now);
-                } else {
-                    panic!("Unknown EncoderButton {:?} {:?}", row, col);
-                }
-            }
-
             Oper::RotaryEncoder(row, col, v) => {
                 // match (row, col) {
                 // }
+            }
+
+            Oper::LedButton(row, col, on) => {
+                if *row < 2 {
+                    // 0-1 step button
+                    self.buttons.set_step(*row, *col, on);
+                } else {
+                    // 2-4 top button
+                    self.buttons.set_top(*row, *col, on)
+                }
+            }
+
+            Oper::RotaryButton(row, col, on) => {
+                self.buttons.set_rotary(*row, *col, on);
             }
         }
     }
 
     pub fn tick(&mut self, now: Time) {
-        let any_button_change = self.tick_buttons(now);
-
+        self.mstate.transition(&self.buttons);
         //
-    }
-
-    // Costs ~90uS
-    fn tick_buttons(&mut self, now: Time) -> bool {
-        let mut any_change = false;
-
-        for row in &mut self.buttons_top {
-            for button in row {
-                let state_change = button.tick(now);
-                any_change |= state_change;
-            }
-        }
-
-        for row in &mut self.buttons_step {
-            for button in row {
-                any_change |= button.tick(now);
-            }
-        }
-
-        for row in &mut self.buttons_step_rot {
-            for button in row {
-                any_change |= button.tick(now);
-            }
-        }
-
-        any_change
     }
 
     /// Current playhead, 0-63 for instance (depends on pattern length).
@@ -191,7 +149,7 @@ impl AppState {
             self.track_playhead[i] = match self.params.tracks[i].sync {
                 TrackSync::Sync => playhead % plen.min(parm.tracks[i].length as usize),
                 TrackSync::Reset => (self.playhead % parm.tracks[i].length as u64) as usize,
-                TrackSync::Free => (self.tick_count % parm.tracks[i].length as u64) as usize,
+                TrackSync::Free => (self.clock_count % parm.tracks[i].length as u64) as usize,
             };
         }
     }

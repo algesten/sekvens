@@ -56,17 +56,12 @@ impl LedGrid {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub enum BiLed {
+    #[default]
     Off,
     Red,
     Grn,
-}
-
-impl Default for BiLed {
-    fn default() -> Self {
-        BiLed::Off
-    }
 }
 
 impl LedGrid {

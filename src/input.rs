@@ -48,17 +48,21 @@ impl AppInput {
             }
         }
 
-        // Read row 5 before other rows, since it has the "shift" button which affects
-        // other keys being pushed after.
-        if let Some(edge_row5) = self.swl_row5.tick(now) {
-            oper_queue.push(Oper::LedButton(Row(4), col, edge_row5.is_rising()));
+        // Row 3-4-5 only has column 5,6,7,8.
+        if *col >= 4 {
+            // Read row 5 before other rows, since it has the "shift" button which affects
+            // other keys being pushed after.
+            if let Some(edge_row5) = self.swl_row5.tick(now) {
+                oper_queue.push(Oper::LedButton(Row(4), col, edge_row5.is_rising()));
+            }
+            if let Some(edge_row4) = self.swl_row4.tick(now) {
+                oper_queue.push(Oper::LedButton(Row(3), col, edge_row4.is_rising()));
+            }
+            if let Some(edge_row3) = self.swl_row3.tick(now) {
+                oper_queue.push(Oper::LedButton(Row(2), col, edge_row3.is_rising()));
+            }
         }
-        if let Some(edge_row4) = self.swl_row4.tick(now) {
-            oper_queue.push(Oper::LedButton(Row(3), col, edge_row4.is_rising()));
-        }
-        if let Some(edge_row3) = self.swl_row3.tick(now) {
-            oper_queue.push(Oper::LedButton(Row(2), col, edge_row3.is_rising()));
-        }
+
         if let Some(edge_row2) = self.swl_row2.tick(now) {
             oper_queue.push(Oper::LedButton(Row(1), col, edge_row2.is_rising()));
         }
@@ -68,10 +72,10 @@ impl AppInput {
 
         // Rotary encoder buttons
         if let Some(edge_row2) = self.swr_row2.tick(now) {
-            oper_queue.push(Oper::EncoderButton(Row(1), col, edge_row2.is_rising()));
+            oper_queue.push(Oper::RotaryButton(Row(1), col, edge_row2.is_rising()));
         }
         if let Some(edge_row1) = self.swr_row1.tick(now) {
-            oper_queue.push(Oper::EncoderButton(Row(0), col, edge_row1.is_rising()));
+            oper_queue.push(Oper::RotaryButton(Row(0), col, edge_row1.is_rising()));
         }
 
         // Rotary encoder knob
