@@ -31,7 +31,9 @@ mod flip_pin;
 mod input;
 mod led_grid;
 mod mstate;
+mod music;
 mod state;
+mod track;
 
 // Setup logging via defmt_rtt. "rtt" is "real time transfer"
 use defmt_rtt as _;

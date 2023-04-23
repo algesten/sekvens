@@ -45,43 +45,43 @@ Turning the rotary encoder sets the pitch of the step. The pitch adjusts in the 
 
 ## Global
 
-(all holding shift)
+## Track/part selectors
 
-  * [x] pattern root - root key for the scale
-  * [x] pattern chord - various scales
-  * [x] play/pause
-  * [x] copy/paste - copy step to other step, track to track, part to part, bank to bank
   * [x] switch part - changes the 16 steps.
-  * [x] switch bank - switches all 8 parts.
-  * [x] play direction (forward, backward, random).
-  * [x] swing
-
-  * [x] reset (bank) - blank everything in the current bank.
-
-## Per track
-
   * [x] select - select which track the 16 steps show
   * [x] mute - mute a track stops the gate (and pitch?)
+  * [x] copy/paste - copy step to other step, track to track, part to part, (bank to bank?)
 
 ### HOLD SHIFT
+
+  * [x] pattern root - root key for the scale
+  * [x] pattern scale
+  * [x] play/pause
+  * [ ] switch bank - switches all 8 parts.
+  * [x] play direction (forward, backward, random).
+  * [x] swing
 
   * [x] length - length of the track 1-128 (track spanning multiple parts)
   * [x] "loop mode" - restart track on each SYNC or loop free
   * [x] base velocity - starting point for velocity or lfo offset.
   * [x] velocity/lfo - switch mode between velocity or lfo for the track
   * [x] base probability - base probabilty of each step triggering
+  * [x] Slew (glissando)
 
 ## Per step
 
   * [x] step on/off (skip?)
-  * [x] pitch
+  * [x] note
   * [x] legato
+  * [x] length
   * [x] chord mode :)]
   * [x] probability - (additive to step triggering, negative values possible)
+  * [x] Slew (glissando)
 
 ### HOLD VELOCITY
 
   * [x] set velocity (and lfo?) - (additive to base velocity, negative values possible)
+  * [x] restart lfo (accent?!)
   * [x] micro offset
   * [ ] ratchet
 
@@ -90,11 +90,19 @@ Turning the rotary encoder sets the pitch of the step. The pitch adjusts in the 
 Press and hold step.
 
   * [x] step root - root key for the scale
-  * [x] step chord - various scales
+  * [x] step scale
   * [x] step pitch - same as pitch without chord mode
   * [x] spread - how wide the chord is
 
-# Chords and Scales
+
+## Reset mode
+
+Hold shift + velocity
+
+  * [x] reset (bank) - blank everything in the current bank.
+  * [x] factory reset - blank all the things.
+
+# Scales
 
 ```
 [C] D [E] F [G] A [B] C [D] E [F] G [A] B C
@@ -139,3 +147,32 @@ These are the spread configs of Sinfonion
 1 * * * * 3 * * * * * 7 * * 5
 1 * * * * 3 * * * * 5 * * * * 7
 ```
+
+# Pitch 1v/octave
+
+Analyze Sinfonion.
+
+Octave switch       : -3 0 +3 octaves
+Transpose           : -12 0 +12 notes
+Pitch + spread goes : 0v - 8.5v octaves roughly. With a 13th + some inversion
+
+```
+   Volts  Tone   i8
+   -2.53  MIN   ---
+   -2.5   F#-1  -30
+   -2     C0    -24
+   -1     C1    -12
+    0     C2      0
+    1     C3     12
+    2     C4     24
+    3     C5     36
+    4     C6     48
+    5     C7     60
+    6     C8     72
+    7     C9     84
+    8     C10    96
+    8.42  F10   101
+    8.47  MAX   ---
+```
+
+Notice it's 11V total difference.

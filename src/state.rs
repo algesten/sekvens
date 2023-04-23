@@ -3,6 +3,8 @@ use alg::tempo::Tempo;
 use crate::buttons::Buttons;
 use crate::led_grid::BiLed;
 use crate::mstate::MachineState;
+use crate::music::{Scale, Tone};
+use crate::track::{Track, TrackSync};
 use crate::{Col, Row, Time, CLOCK};
 
 pub const TRACK_COUNT: usize = 4;
@@ -45,8 +47,11 @@ pub struct AppState {
     /// Current global playhead. Goes from 0..whenever external reset comes.
     playhead: u64,
 
-    /// Parameters for pattern and tracks.
-    params: Params<{ TRACK_COUNT }>,
+    /// Parameters for pattern.
+    params: PatternParams,
+
+    /// Tracks with parameters and notes.
+    tracks: [Track; TRACK_COUNT],
 
     /// Playhead for each track.
     track_playhead: [usize; TRACK_COUNT],
@@ -74,13 +79,11 @@ impl AppState {
     pub fn led_row(&self, row: usize) -> &[BiLed; 8] {
         &self.leds[row]
     }
-}
 
-impl AppState {
     pub fn apply_oper(&mut self, now: Time, oper: Oper) {
         match oper {
             Oper::Clock(interval) => {
-                self.tempo.predict(interval);
+                self.predicted = self.tempo.predict(interval);
                 self.clock_count += 1;
 
                 if self.next_is_reset {
@@ -110,8 +113,7 @@ impl AppState {
             }
 
             Oper::RotaryEncoder(row, col, v) => {
-                // match (row, col) {
-                // }
+                self.handle_rotary(row, col, v);
             }
 
             Oper::LedButton(row, col, on) => {
@@ -137,62 +139,69 @@ impl AppState {
 
     /// Current playhead, 0-63 for instance (depends on pattern length).
     pub fn playhead(&self) -> usize {
-        (self.playhead % self.params.pattern_length as u64) as usize
+        (self.playhead % self.params.length as u64) as usize
     }
 
     fn update_track_playhead(&mut self) {
         let parm = &self.params;
-        let plen = parm.pattern_length as usize;
+        let plen = parm.length as usize;
         let playhead = self.playhead();
 
         for i in 0..TRACK_COUNT {
-            self.track_playhead[i] = match self.params.tracks[i].sync {
-                TrackSync::Sync => playhead % plen.min(parm.tracks[i].length as usize),
-                TrackSync::Reset => (self.playhead % parm.tracks[i].length as u64) as usize,
-                TrackSync::Free => (self.clock_count % parm.tracks[i].length as u64) as usize,
+            let track = &self.tracks[i];
+            let len = track.params.length;
+            self.track_playhead[i] = match track.params.sync {
+                TrackSync::Sync => playhead % plen.min(len as usize),
+                TrackSync::Reset => (self.playhead % len as u64) as usize,
+                TrackSync::Free => (self.clock_count % len as u64) as usize,
             };
         }
     }
-}
 
-pub struct Params<const X: usize> {
-    pattern_length: u8,
-    tracks: [TrackParams; X],
-}
-
-#[derive(Clone, Copy)]
-pub struct TrackParams {
-    /// Length of track. In clock-ticks.
-    pub length: u8,
-
-    /// Track sync parameter.
-    pub sync: TrackSync,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum TrackSync {
-    /// Track is restarted at pattern length and reset.
-    Sync,
-    /// Track is restarted only by reset.
-    Reset,
-    /// Track just keeps looping, ignoring both pattern length and reset.
-    Free,
-}
-
-impl Default for TrackParams {
-    fn default() -> Self {
-        Self {
-            length: 64,
-            sync: TrackSync::Sync,
-        }
+    fn handle_rotary(&mut self, row: Row, col: Col, v: i8) {
+        todo!()
     }
 }
 
-impl<const X: usize> Default for Params<X> {
+struct PatternParams {
+    /// Length of entire pattern. 1-128
+    length: usize,
+
+    /// Percentage swing. Default 50.
+    ///
+    /// 50% is perfectly straight < 50 note is early > 50 note is late.
+    swing: usize,
+
+    /// How the pattern is played. Default is forward.
+    direction: PlayDirection,
+
+    /// Whether we are playing or paused right now. Defaults to true.
+    play: bool,
+
+    /// The root key.
+    root: Tone,
+
+    /// The default scale for the pattern. Can be overridden by step.
+    scale: Scale,
+}
+
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+enum PlayDirection {
+    #[default]
+    Forward,
+    Backward,
+    Random,
+}
+
+impl Default for PatternParams {
     fn default() -> Self {
         Self {
-            pattern_length: 64,
-            tracks: [TrackParams::default(); X],
+            length: 16,
+            swing: 50,
+            direction: PlayDirection::default(),
+            play: true,
+            root: Tone::default(),
+            scale: Scale::default(),
         }
     }
 }
