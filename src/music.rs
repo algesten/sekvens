@@ -1,10 +1,18 @@
 use core::ops::{Deref, DerefMut};
 
+const TONE_MIN: i8 = -30;
+const TONE_MAX: i8 = 101;
+
 /// 0 is C0, 1 C#0, 2 D0, etc.
 ///
-/// Min that can be represente in volts is -30 (F#-1), Max is 101 (F10).
+/// Min that can be represented in volts is -30 (F#-1), Max is 101 (F10).
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub struct Tone(pub i8);
+impl Tone {
+    pub(crate) fn add(&mut self, v: i8) {
+        self.0 = self.0.saturating_add(v).clamp(TONE_MIN, TONE_MAX);
+    }
+}
 
 impl Deref for Tone {
     type Target = i8;
@@ -28,43 +36,43 @@ pub enum Scale {
     ///
     /// Ionian
     #[default]
-    Major,
+    Major = 0,
 
     /// C D E F# G A B C
-    Lydian,
+    Lydian = 1,
 
     /// C D E F G A A# C
     ///
     /// Mixolydian
-    Seven,
+    Seven = 2,
 
     /// C D F E G A A# C
     ///
     /// Mixolydian + suspended 4
-    Sus,
+    Sus = 3,
 
     /// C D Eb F G Ab Bb C
     ///
     /// Natural minor. Aeolian.
-    Minor,
+    Minor = 4,
 
     /// C D Eb F G A Bb C
     ///
     /// Dorian. Jazz minor.
-    Dorian,
+    Dorian = 5,
 
     /// C D Eb F G Ab B C
     ///
     /// Harmonic minor scale.
-    Harmonic,
+    Harmonic = 6,
 
     /// C Db Eb F G Ab Bb C
-    Phrygian,
+    Phrygian = 7,
 
     /// C Db E F G Ab Bb C
     ///
     /// Spanish Phrygian or Phrygian Dominant
-    Spanish,
+    Spanish = 8,
 
     /// Diminished chord
     ///
@@ -72,7 +80,26 @@ pub enum Scale {
     ///
     /// C D Eb F Gb Ab A B
     /// 1 2 3  4 5  6  7 8
-    Dim,
+    Dim = 9,
+}
+
+impl From<u8> for Scale {
+    fn from(value: u8) -> Self {
+        use Scale::*;
+        match value % 10 {
+            0 => Major,
+            1 => Lydian,
+            2 => Seven,
+            3 => Sus,
+            4 => Minor,
+            5 => Dorian,
+            6 => Harmonic,
+            7 => Phrygian,
+            8 => Spanish,
+            9 => Dim,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Scale {
@@ -181,6 +208,11 @@ impl Scale {
                 Tone(11), // B
             ],
         }
+    }
+
+    pub fn add(&mut self, v: i8) {
+        let n = (*self as i8).saturating_add(v).clamp(0, 9) as u8;
+        *self = n.into();
     }
 }
 

@@ -41,7 +41,7 @@ impl Buttons {
         self.top.is(11)
     }
 
-    pub fn is_rotary_top(&self) -> Option<u32> {
+    pub fn is_rotary_upper(&self) -> Option<u32> {
         // We want exactly one rotary button pressed.
         let x = *self.step & 0x00ff;
         if x.count_ones() == 1 {
@@ -51,7 +51,7 @@ impl Buttons {
         }
     }
 
-    pub fn is_rotary_bottom(&self) -> Option<u32> {
+    pub fn is_rotary_lower(&self) -> Option<u32> {
         // We want exactly one rotary button pressed.
         let x = *self.step & 0xff00;
         if x.count_ones() == 1 {
@@ -59,5 +59,16 @@ impl Buttons {
         } else {
             None
         }
+    }
+
+    pub fn rotary_to_step(&self) -> Option<usize> {
+        let mut t = *self.step;
+        for i in 0..16 {
+            if t & 1 > 0 {
+                return Some(i);
+            }
+            t >>= 1
+        }
+        None
     }
 }

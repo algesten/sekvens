@@ -12,15 +12,15 @@ pub enum MachineState {
     /// Velocity button is down
     Velocity,
 
-    /// A rotary button on the lower row is pressed.
-    ///
-    /// The u32 tells us which one.
-    ChordUpper(u32),
-
     /// A rotary button on the upper row is pressed.
     ///
     /// The u32 tells us which rotary button is pressed.
-    ChordLower(u32),
+    HoldUpper(u32),
+
+    /// A rotary button on the lower row is pressed.
+    ///
+    /// The u32 tells us which one.
+    HoldLower(u32),
 
     /// Both shift and velocity is pressed.
     Reset,
@@ -35,14 +35,14 @@ impl MachineState {
             MachineState::Normal => match (
                 buttons.is_shift(),
                 buttons.is_vel(),
-                buttons.is_rotary_top(),
-                buttons.is_rotary_bottom(),
+                buttons.is_rotary_upper(),
+                buttons.is_rotary_lower(),
             ) {
                 (true, true, None, None) => *self = MachineState::Reset,
                 (true, false, None, None) => *self = MachineState::Shift,
                 (false, true, None, None) => *self = MachineState::Velocity,
-                (false, false, None, Some(b)) => *self = MachineState::ChordUpper(b),
-                (false, false, Some(b), None) => *self = MachineState::ChordLower(b),
+                (false, false, Some(b), None) => *self = MachineState::HoldUpper(b),
+                (false, false, None, Some(b)) => *self = MachineState::HoldLower(b),
                 _ => {}
             },
 
@@ -58,12 +58,12 @@ impl MachineState {
                 _ => *self = MachineState::WaitForClear,
             },
 
-            MachineState::ChordUpper(b) => match buttons.is_rotary_bottom() {
+            MachineState::HoldUpper(b) => match buttons.is_rotary_upper() {
                 Some(x) if *b == x => {} // stay in state
                 _ => *self = MachineState::WaitForClear,
             },
 
-            MachineState::ChordLower(b) => match buttons.is_rotary_top() {
+            MachineState::HoldLower(b) => match buttons.is_rotary_lower() {
                 Some(x) if *b == x => {} // stay in state
                 _ => *self = MachineState::WaitForClear,
             },

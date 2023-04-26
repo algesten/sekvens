@@ -34,6 +34,7 @@ mod mstate;
 mod music;
 mod state;
 mod track;
+mod val;
 
 // Setup logging via defmt_rtt. "rtt" is "real time transfer"
 use defmt_rtt as _;

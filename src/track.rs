@@ -1,4 +1,5 @@
 use crate::music::Tone;
+use crate::val::Val;
 
 pub struct Track {
     /// Parameters for this track.
@@ -10,15 +11,18 @@ pub struct Track {
 
 pub struct TrackParams {
     /// Length of track. In clock-ticks.
-    pub length: usize,
+    pub track_length: usize,
 
     /// Track sync parameter.
     pub sync: TrackSync,
 
+    /// Base step length. Defaults to 50.
+    pub base_step_length: Val<0, 100>,
+
     /// Base velocity. Defaults to 80.
     ///
     /// * Range is 0 - 127
-    pub base_velocity: i8,
+    pub base_velocity: Val<0, 127>,
 
     /// Velocity or LFO mode. Defaults to false, velocity mode.
     pub lfo_mode: bool,
@@ -26,7 +30,7 @@ pub struct TrackParams {
     /// Base probability. Defaults to 100.
     ///
     /// * Range is 0 - 100.
-    pub base_probability: i8,
+    pub base_probability: Val<0, 100>,
 
     /// Base slew. Defaults to 0.
     ///
@@ -34,10 +38,18 @@ pub struct TrackParams {
     /// * 0 is no slew
     /// * 50 is reaching the next note at half step length.
     /// * 100 is reaching the next note at step length.
-    pub base_slew: i8,
+    pub base_slew: Val<0, 100>,
 }
 
-#[derive(Default, Clone, Copy)]
+impl TrackParams {
+    pub fn add_length(&mut self, v: i8) {
+        self.track_length = (self.track_length as isize)
+            .saturating_add(v as isize)
+            .clamp(1, 128) as usize;
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct TrackStep {
     /// Whether the step is playing or not.
     pub on: bool,
@@ -45,15 +57,16 @@ pub struct TrackStep {
     /// Probability between -100 - 100. Defaults to 0.
     ///
     /// Added to track level probability. The end result i 0 - 100.
-    pub probability: i8,
+    pub probability: Val<-100, 100>,
 
     /// Tone of step.
     pub tone: Tone,
 
-    /// The length of the note. 255 is a legato and goes into the next.
-    pub length: u8,
+    /// The length of the note. 100 is a legato and goes into the next. 1 is 1/100 of the step length.
+    /// This value is added to the base length. Defaults to 0.
+    pub length: Val<-100, 100>,
 
-    /// Overrides the track length to 255.
+    /// Overrides the track length to 100.
     ///
     /// If we turn off the legato, the length is preserved.
     pub legato: bool,
@@ -61,18 +74,18 @@ pub struct TrackStep {
     /// Velocity between -127 - 127. Defaults to 0.
     ///
     /// Added to track level velocity. The end result is 0 - 127.
-    pub velocity: i8,
+    pub velocity: Val<-127, 127>,
 
     /// Glissando speed going from this step to the next. Defaults to 0.
     ///
     /// Added to track level slew. The end result i 0 - 100.
-    pub slew: i8,
+    pub slew: Val<-100, 100>,
 
-    /// Micro offset.
+    /// Micro offset. Defaults to 0.
     ///
     /// * -128 same time as previous step, i.e. -127 the min reasonable.
     /// *  128 same time as next step, i.e. 127 the max reasonable.
-    pub offset: i8,
+    pub offset: Val<-127, 127>,
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -98,12 +111,28 @@ impl Default for Track {
 impl Default for TrackParams {
     fn default() -> Self {
         Self {
-            length: 128,
+            track_length: 128,
             sync: TrackSync::default(),
-            base_velocity: 80,
+            base_step_length: Val(50),
+            base_velocity: Val(80),
             lfo_mode: false,
-            base_probability: 100,
-            base_slew: 0,
+            base_probability: Val(100),
+            base_slew: Val(0),
+        }
+    }
+}
+
+impl Default for TrackStep {
+    fn default() -> Self {
+        Self {
+            on: Default::default(),
+            probability: Val(0),
+            tone: Default::default(),
+            length: Val(0),
+            legato: Default::default(),
+            velocity: Val(0),
+            slew: Val(0),
+            offset: Val(0),
         }
     }
 }
