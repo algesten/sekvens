@@ -249,13 +249,12 @@ impl AppState {
                 1 => step.velocity.add(v),
                 2 => step.probability.add(v),
                 3 => step.slew.add(v),
+                // 5 => spread cannot be added on individual track level.
+                6 => step.scale.add(v),
+                7 => step.tone.add(v),
                 _ => {}
             }
         }
-        // 4 spread
-        // 5 pitch
-        // 6 scale
-        // 7 root
     }
 }
 

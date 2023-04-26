@@ -31,48 +31,51 @@ impl DerefMut for Tone {
 /// Scale (or mode)
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub enum Scale {
+    /// All the tones!
+    Chromatic = 0,
+
     /// C D E F G A B C D E F G A
     /// 1 2 3 4 5 6 7 8 9 0 1 2 3
     ///
     /// Ionian
     #[default]
-    Major = 0,
+    Major = 1,
 
     /// C D E F# G A B C
-    Lydian = 1,
+    Lydian = 2,
 
     /// C D E F G A A# C
     ///
     /// Mixolydian
-    Seven = 2,
+    Seven = 3,
 
     /// C D F E G A A# C
     ///
     /// Mixolydian + suspended 4
-    Sus = 3,
+    Sus = 4,
 
     /// C D Eb F G Ab Bb C
     ///
     /// Natural minor. Aeolian.
-    Minor = 4,
+    Minor = 5,
 
     /// C D Eb F G A Bb C
     ///
     /// Dorian. Jazz minor.
-    Dorian = 5,
+    Dorian = 6,
 
     /// C D Eb F G Ab B C
     ///
     /// Harmonic minor scale.
-    Harmonic = 6,
+    Harmonic = 7,
 
     /// C Db Eb F G Ab Bb C
-    Phrygian = 7,
+    Phrygian = 8,
 
     /// C Db E F G Ab Bb C
     ///
     /// Spanish Phrygian or Phrygian Dominant
-    Spanish = 8,
+    Spanish = 9,
 
     /// Diminished chord
     ///
@@ -80,23 +83,24 @@ pub enum Scale {
     ///
     /// C D Eb F Gb Ab A B
     /// 1 2 3  4 5  6  7 8
-    Dim = 9,
+    Dim = 10,
 }
 
 impl From<u8> for Scale {
     fn from(value: u8) -> Self {
         use Scale::*;
         match value % 10 {
-            0 => Major,
-            1 => Lydian,
-            2 => Seven,
-            3 => Sus,
-            4 => Minor,
-            5 => Dorian,
-            6 => Harmonic,
-            7 => Phrygian,
-            8 => Spanish,
-            9 => Dim,
+            0 => Chromatic,
+            1 => Major,
+            2 => Lydian,
+            3 => Seven,
+            4 => Sus,
+            5 => Minor,
+            6 => Dorian,
+            7 => Harmonic,
+            8 => Phrygian,
+            9 => Spanish,
+            10 => Dim,
             _ => unreachable!(),
         }
     }
@@ -107,6 +111,21 @@ impl Scale {
     // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
     pub fn as_tones(&self) -> &'static [Tone] {
         match self {
+            Scale::Chromatic => &[
+                Tone(0),
+                Tone(1),
+                Tone(2),
+                Tone(3),
+                Tone(4),
+                Tone(5),
+                Tone(6),
+                Tone(7),
+                Tone(8),
+                Tone(9),
+                Tone(10),
+                Tone(11),
+            ],
+
             Scale::Major => &[
                 Tone(0),  // C
                 Tone(2),  // D

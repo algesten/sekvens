@@ -1,4 +1,3 @@
-use crate::music::Tone;
 use crate::val::Val;
 
 pub struct Track {
@@ -59,8 +58,15 @@ pub struct TrackStep {
     /// Added to track level probability. The end result i 0 - 100.
     pub probability: Val<-100, 100>,
 
-    /// Tone of step.
-    pub tone: Tone,
+    /// Tone of step as an offset from the base tone. Defaults to 0.
+    ///
+    /// Value is added to track base tone.
+    pub tone: Val<-100, 100>,
+
+    /// Scale of the step as an offset from the base scale. Defaults to 0.
+    ///
+    /// 0 is base scale, we can go 8 steps down and then wrap around to 9 steps above.
+    pub scale: Val<-8, 9>,
 
     /// The length of the note. 100 is a legato and goes into the next. 1 is 1/100 of the step length.
     /// This value is added to the base length. Defaults to 0.
@@ -127,7 +133,8 @@ impl Default for TrackStep {
         Self {
             on: Default::default(),
             probability: Val(0),
-            tone: Default::default(),
+            tone: Val(0),
+            scale: Val(0),
             length: Val(0),
             legato: Default::default(),
             velocity: Val(0),
