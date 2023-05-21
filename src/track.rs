@@ -63,6 +63,10 @@ pub struct TrackStep {
     /// Value is added to track base tone.
     pub tone: Val<-100, 100>,
 
+    /// The amount of spread applied to this step (this is only relevant when selecting more
+    /// than one track, and the lowest track's spread is used.
+    pub spread: Val<0, 10>,
+
     /// Scale of the step as an offset from the base scale. Defaults to 0.
     ///
     /// 0 is base scale, we can go 8 steps down and then wrap around to 9 steps above.
@@ -134,6 +138,7 @@ impl Default for TrackStep {
             on: Default::default(),
             probability: Val(0),
             tone: Val(0),
+            spread: Val(0),
             scale: Val(0),
             length: Val(0),
             legato: Default::default(),

@@ -12,6 +12,12 @@ impl Tone {
     pub(crate) fn add(&mut self, v: i8) {
         self.0 = self.0.saturating_add(v).clamp(TONE_MIN, TONE_MAX);
     }
+
+    fn modulo(&self, n: i8) -> Tone {
+        let mut r = *self;
+        r.0 = r.0 % n;
+        r
+    }
 }
 
 impl Deref for Tone {
@@ -246,3 +252,98 @@ impl From<Tone> for i8 {
         value.0
     }
 }
+
+pub fn spread(tones: &[Tone], amount: usize) -> [Tone; 4] {
+    let tone_count = tones.len();
+    assert!(tone_count > 0 && tone_count <= 4);
+
+    let spread_pat = SPREADS[tone_count - 1];
+    let spread_row = spread_pat[amount.clamp(0, spread_pat.len())];
+
+    let mut ret = [
+        tones[0 % tone_count].modulo(12),
+        tones[1 % tone_count].modulo(12),
+        tones[2 % tone_count].modulo(12),
+        tones[3 % tone_count].modulo(12),
+    ];
+
+    let Some(idx_a) = spread_row.iter().position(|x| *x == b'A') else {
+        return ret;
+    };
+
+    let octave_a = idx_a / 4;
+    ret[0].add(octave_a as i8);
+
+    let Some(idx_b) = spread_row.iter().position(|x| *x == b'B') else {
+        return ret;
+    };
+
+    let octave_b = idx_b / 4;
+    ret[1].add(octave_b as i8);
+
+    let idx_c = spread_row.iter().position(|x| *x == b'C');
+    let idx_d = spread_row.iter().position(|x| *x == b'D');
+
+    ret
+}
+
+const SPREADS: [&[&[u8]]; 4] = [SPREAD_1, SPREAD_2, SPREAD_3, SPREAD_4];
+const SPREAD_1: &[&[u8]] = &[b"A"];
+#[rustfmt::skip]
+const SPREAD_2: &[&[u8]] = &[
+    b"AB",
+    b"A B",
+    b"A  B",
+    b"A   B",
+    b"A    B",
+    b"A     B",
+    b"A      B",
+    b"A       B",
+    b"A        B",
+    b"A         B",
+    b"A          B",
+    b"A           B",
+    b"A            B",
+    b"A             B",
+    b"A              B",
+    b"A               B",
+];
+#[rustfmt::skip]
+const SPREAD_3: &[&[u8]] = &[
+    b"ABC",
+    b"A BC",
+    b"A B C",
+    b"A  B C",
+    b"A  B  C",
+    b"A  B   C",
+    b"A   B   C",
+    b"A   B    C",
+    b"A    B    C",
+    b"A    B     C",
+    b"A     B     C",
+    b"A     B      C",
+    b"A      B      C",
+    b"A      B       C",
+    b"A       B       C",
+    b"A       B        C",
+    b"A        B        C",
+];
+#[rustfmt::skip]
+const SPREAD_4: &[&[u8]] = &[
+    b"ABCD",
+    b"AB CD",
+    b"A B CD",
+    b"A B C D",
+    b"A B  C D",
+    b"A B  C  D",
+    b"A  B  C  D",
+    b"A  B  C   D",
+    b"A  B   C   D",
+    b"A   B   C   D",
+    b"A   B   C    D",
+    b"A   B    C    D",
+    b"A    B    C    D",
+    b"A    B    C     D",
+    b"A    B     C     D",
+    b"A     B     C     D",
+];
